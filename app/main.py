@@ -1,12 +1,14 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from app.services.guardrails import GuardrailJudge
+from app.services.worker import WorkerLLM
 
 # Initialize the FastAPI app
 app = FastAPI(title="Auto-Guard: LLM Quality & Safety Pipeline")
 
 # Initialize your Judge Engine
 judge = GuardrailJudge(model_name="gpt-4o-mini")
+worker = WorkerLLM(model_name="gpt-4o-mini")
 
 # Schema for the incoming user request
 class ChatRequest(BaseModel):
@@ -29,11 +31,7 @@ async def chat_endpoint(request: ChatRequest):
         )
 
     # 2. Core Inference (The "Worker")
-    # Placeholder: In the future, this is where the call to main LLM.
-    worker_response = (
-        f"This is a simulated AI response to your prompt: '{request.prompt}'. "
-        "It is meant to test the output guardrails."
-    )
+    worker_response = await worker.generate_response(request.prompt)
 
     # 3. Post-Processing (Output Guardrails)
     output_eval = await judge.evaluate_output(request.prompt, worker_response)

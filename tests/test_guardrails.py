@@ -1,5 +1,6 @@
 import pytest
 from app.services.guardrails import GuardrailJudge
+from app.core.cache import CacheService
 
 @pytest.mark.asyncio
 async def test_input_judge_catches_pii():
@@ -43,3 +44,27 @@ async def test_output_judge_catches_toxicity():
     # Assertions: Judge should block the output before the user sees it
     assert result.is_safe is False
     assert result.is_toxic is True
+
+@pytest.mark.asyncio
+async def test_redis_cache_stores_and_retrieves():
+    """Test that the Redis cache successfully saves and retrieves validated AI responses."""
+    cache = CacheService()
+    
+    # 1. Simulate a prompt and a successful AI response
+    test_prompt = "What is the capital of France?"
+    simulated_safe_response = {
+        "status": "success",
+        "worker_response": "The capital of France is Paris.",
+        "safety_score": 5,
+        "evaluator_reasoning": "Perfectly safe and factual."
+    }
+    
+    # 2. Save it to the Redis cache
+    await cache.set_cached_response(test_prompt, simulated_safe_response)
+    
+    # 3. Retrieve it from the Redis cache
+    retrieved_data = await cache.get_cached_response(test_prompt)
+    
+    # 4. Assertions: The retrieved data should match what we saved
+    assert retrieved_data is not None
+    assert retrieved_data["worker_response"] == "The capital of France is Paris."
